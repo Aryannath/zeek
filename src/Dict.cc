@@ -1476,21 +1476,10 @@ void* Dictionary::NextEntryNonConst(detail::HashKey*& h, IterCookie*& c, bool re
 	if ( c->next < 0 )
 		c->next = Next(-1);
 
-	// if resize happens during iteration. before sizeup, c->next points to Capacity(),
-	// but now Capacity() doubles up and c->next doesn't point to the end anymore.
-	// this is fine because c->next may be filled now.
-	// however, c->next can also be empty.
-	// before sizeup, we use c->next >= Capacity() to indicate the end of the iteration.
-	// now this guard is invalid, we may face c->next is valid but empty now.F
-	//fix it here.
-	int capacity = Capacity();
-	if ( c->next < capacity && table[c->next].Empty() )
-		{
-		ASSERT(false); //stop to check the condition here. why it's happening.
-		c->next = Next(c->next);
-		}
+	ASSERT(c->next >= Capacity() || ! table[c->next].Empty());
 
 	//filter out visited keys.
+	int capacity = Capacity();
 	if ( c->visited && ! c->visited->empty() )
 		//filter out visited entries.
 		while ( c->next < capacity )
@@ -1563,8 +1552,8 @@ DictIterator::DictIterator(const Dictionary* d, detail::DictEntry* begin, detail
 
 DictIterator::~DictIterator()
 	{
-	if ( dict->num_iterators > 0 )
-		dict->num_iterators--;
+	assert(dict->num_iterators > 0);
+	dict->num_iterators--;
 	}
 
 DictIterator& DictIterator::operator++()
@@ -1587,7 +1576,6 @@ std::shared_ptr<RobustDictIterator> Dictionary::MakeRobustIterator()
 	if ( ! iterators )
 		iterators = new std::vector<std::shared_ptr<RobustDictIterator>>;
 
-	num_iterators++;
 	auto iter = std::make_shared<RobustDictIterator>(this);
 	iterators->push_back(iter);
 
@@ -1604,8 +1592,6 @@ detail::DictEntry Dictionary::GetNextRobustIteration(RobustDictIterator* iter)
 	// a large list when deleting an entry.
 	if ( ! table )
 		{
-		if ( num_iterators > 0 )
-			num_iterators--;
 		iter->Complete();
 		return detail::DictEntry(nullptr); // end of iteration
 		}
@@ -1622,23 +1608,12 @@ detail::DictEntry Dictionary::GetNextRobustIteration(RobustDictIterator* iter)
 	if ( iter->next < 0 )
 		iter->next = Next(-1);
 
-	// if resize happens during iteration. before sizeup, iter->next points to Capacity(),
-	// but now Capacity() doubles up and iter->next doesn't point to the end anymore.
-	// this is fine because iter->next may be filled now.
-	// however, iter->next can also be empty.
-	// before sizeup, we use iter->next >= Capacity() to indicate the end of the iteration.
-	// now this guard is invalid, we may face iter->next is valid but empty now.F
-	//fix it here.
-	int capacity = Capacity();
-	if ( iter->next < capacity && table[iter->next].Empty() )
-		{
-		ASSERT(false); //stop to check the condition here. why it's happening.
-		iter->next = Next(iter->next);
-		}
+	ASSERT(iter->next >= Capacity() || ! table[iter->next].Empty());
 
-	//filter out visited keys.
+	// Filter out visited keys.
+	int capacity = Capacity();
 	if ( iter->visited && ! iter->visited->empty() )
-		//filter out visited entries.
+		// Filter out visited entries.
 		while ( iter->next < capacity )
 			{
 			ASSERT(! table[iter->next].Empty());
@@ -1665,13 +1640,10 @@ detail::DictEntry Dictionary::GetNextRobustIteration(RobustDictIterator* iter)
 
 RobustDictIterator::RobustDictIterator(Dictionary* d) : curr(nullptr), dict(d)
 	{
-	// Don't do any of this stuff for end iterators.
-	if ( dict )
-		{
-		next = -1;
-		inserted = new std::vector<detail::DictEntry>();
-		visited = new std::vector<detail::DictEntry>();
-		}
+	dict->num_iterators++;
+	next = -1;
+	inserted = new std::vector<detail::DictEntry>();
+	visited = new std::vector<detail::DictEntry>();
 	}
 
 RobustDictIterator::~RobustDictIterator()
@@ -1683,8 +1655,8 @@ void RobustDictIterator::Complete()
 	{
 	if ( dict )
 		{
-		if ( dict->num_iterators > 0 )
-			dict->num_iterators--;
+		assert(dict->num_iterators > 0);
+		dict->num_iterators--;
 
 		dict->iterators->erase(std::remove(dict->iterators->begin(), dict->iterators->end(),
 		                                   shared_from_this()),
