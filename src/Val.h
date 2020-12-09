@@ -1335,8 +1335,6 @@ class EnumVal final : public Val, public detail::IntValImplementation {
 public:
 	ValPtr SizeVal() const override;
 
-	int Get() const	{ return int_val; }
-
 protected:
 	friend class Val;
 	friend class EnumType;
