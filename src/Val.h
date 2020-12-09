@@ -414,7 +414,7 @@ public:
 		: BoolVal(bro_int_t(b))
 		{}
 
-	bool Get() const	{ return int_val; }
+	bool Get() const	{ return static_cast<bool>(int_val); }
 };
 
 class CountVal : public Val, public detail::UnsignedValImplementation {
@@ -449,7 +449,7 @@ public:
 		  detail::DoubleValImplementation(quantity * units)
 		{}
 
-	double Get() const	{ return double_val; }
+	// Same as for IntVal: no Get() method needed.
 
 protected:
 	void ValDescribe(ODesc* d) const override;
@@ -461,7 +461,7 @@ public:
 	                    detail::DoubleValImplementation(t)
 		{}
 
-	double Get() const	{ return double_val; }
+	// Same as for IntVal: no Get() method needed.
 };
 
 class PortVal final : public Val, public detail::UnsignedValImplementation {
