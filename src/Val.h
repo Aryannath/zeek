@@ -140,13 +140,13 @@ public:
 #define UNDERLYING_ACCESSOR_DECL(ztype, ctype, name) \
 	ctype name() const;
 
-UNDERLYING_ACCESSOR_DECL(detail::IntValImplementation, bro_int_t, AsInt)
-UNDERLYING_ACCESSOR_DECL(BoolVal, bool, AsBool)
-UNDERLYING_ACCESSOR_DECL(EnumVal, int, AsEnum)
-UNDERLYING_ACCESSOR_DECL(detail::UnsignedValImplementation, bro_uint_t, AsCount)
-UNDERLYING_ACCESSOR_DECL(detail::DoubleValImplementation, double, AsDouble)
-UNDERLYING_ACCESSOR_DECL(TimeVal, double, AsTime)
-UNDERLYING_ACCESSOR_DECL(IntervalVal, double, AsInterval)
+// UNDERLYING_ACCESSOR_DECL(IntVal, bro_int_t, AsInt)
+// UNDERLYING_ACCESSOR_DECL(BoolVal, bool, AsBool)
+// UNDERLYING_ACCESSOR_DECL(EnumVal, int, AsEnum)
+// UNDERLYING_ACCESSOR_DECL(CountVal, bro_uint_t, AsCount)
+// UNDERLYING_ACCESSOR_DECL(DoubleVal, double, AsDouble)
+// UNDERLYING_ACCESSOR_DECL(TimeVal, double, AsTime)
+// UNDERLYING_ACCESSOR_DECL(IntervalVal, double, AsInterval)
 UNDERLYING_ACCESSOR_DECL(AddrVal, const IPAddr&, AsAddr)
 UNDERLYING_ACCESSOR_DECL(SubNetVal, const IPPrefix&, AsSubNet)
 UNDERLYING_ACCESSOR_DECL(StringVal, const String*, AsString)
@@ -222,6 +222,18 @@ UNDERLYING_ACCESSOR_DECL(TypeVal, zeek::Type*, AsType)
 
 		return v;
 		}
+
+	bro_int_t int_val;
+	bro_uint_t uint_val;
+	double double_val;
+
+	bro_int_t AsInt() const { return int_val; }
+	bool AsBool() const { return static_cast<bool>(int_val); }
+	int AsEnum() const { return static_cast<int>(int_val); }
+	bro_uint_t AsCount() const { return uint_val; }
+	double AsDouble() const { return double_val; }
+	double AsInterval() const { return double_val; }
+	double AsTime() const { return double_val; }
 
 protected:
 
@@ -395,21 +407,23 @@ protected:
 
 } // namespace detail
 
-class IntVal final : public Val, public detail::IntValImplementation {
+class IntVal final : public Val {
 public:
 	IntVal(bro_int_t v)
-		: Val(base_type(TYPE_INT)), detail::IntValImplementation(v)
-		{}
+		: Val(base_type(TYPE_INT))
+		{Val::int_val = v;}
+
+	bro_int_t Get() const { return int_val; }
 
 	// No Get() method since in the current implementation the
 	// inherited one serves that role.
 };
 
-class BoolVal final : public Val, public detail::IntValImplementation {
+class BoolVal final : public Val {
 public:
 	BoolVal(bro_int_t v)
-		: Val(base_type(TYPE_BOOL)), detail::IntValImplementation(v)
-		{}
+		: Val(base_type(TYPE_BOOL))
+		{Val::int_val = v;}
 	BoolVal(bool b)
 		: BoolVal(bro_int_t(b))
 		{}
@@ -417,21 +431,23 @@ public:
 	bool Get() const	{ return static_cast<bool>(int_val); }
 };
 
-class CountVal : public Val, public detail::UnsignedValImplementation {
+class CountVal : public Val {
 public:
 	CountVal(bro_uint_t v)
-		: Val(base_type(TYPE_COUNT)), detail::UnsignedValImplementation(v)
-		{}
+		: Val(base_type(TYPE_COUNT))
+		{Val::uint_val = v;}
 
+	double Get() const { return uint_val; }
 	// Same as for IntVal: no Get() method needed.
 };
 
-class DoubleVal : public Val, public detail::DoubleValImplementation {
+class DoubleVal : public Val {
 public:
 	DoubleVal(double v)
-		: Val(base_type(TYPE_DOUBLE)), detail::DoubleValImplementation(v)
-		{}
+		: Val(base_type(TYPE_DOUBLE))
+		{Val::double_val = v;}
 
+	double Get() const { return double_val; }
 	// Same as for IntVal: no Get() method needed.
 };
 
@@ -442,29 +458,29 @@ public:
 #define Hours (60*Minutes)
 #define Days (24*Hours)
 
-class IntervalVal final : public Val, public detail::DoubleValImplementation {
+class IntervalVal final : public Val {
 public:
 	IntervalVal(double quantity, double units = Seconds)
-		: Val(base_type(TYPE_INTERVAL)),
-		  detail::DoubleValImplementation(quantity * units)
-		{}
+		: Val(base_type(TYPE_INTERVAL))
+		{Val::double_val = quantity * units;}
 
+	double Get() const { return double_val; }
 	// Same as for IntVal: no Get() method needed.
 
 protected:
 	void ValDescribe(ODesc* d) const override;
 };
 
-class TimeVal final : public Val, public detail::DoubleValImplementation {
+class TimeVal final : public Val {
 public:
-	TimeVal(double t) : Val(base_type(TYPE_TIME)),
-	                    detail::DoubleValImplementation(t)
-		{}
+	TimeVal(double t) : Val(base_type(TYPE_TIME))
+		{Val::double_val = t;}
 
+	double Get() const { return double_val; }
 	// Same as for IntVal: no Get() method needed.
 };
 
-class PortVal final : public Val, public detail::UnsignedValImplementation {
+class PortVal final : public Val {
 public:
 	ValPtr SizeVal() const override;
 
@@ -1331,9 +1347,11 @@ private:
 	std::vector<ValPtr>* record_val;
 };
 
-class EnumVal final : public Val, public detail::IntValImplementation {
+class EnumVal final : public Val {
 public:
 	ValPtr SizeVal() const override;
+
+	bro_int_t Get() const { return int_val; }
 
 protected:
 	friend class Val;
@@ -1343,8 +1361,8 @@ protected:
 	friend IntrusivePtr<T> make_intrusive(Ts&&... args);
 
 	EnumVal(EnumTypePtr t, bro_int_t i)
-		: Val(std::move(t)), detail::IntValImplementation(i)
-		{}
+		: Val(std::move(t))
+		{Val::int_val = i;}
 
 	void ValDescribe(ODesc* d) const override;
 	ValPtr DoClone(CloneState* state) override;
@@ -1505,15 +1523,15 @@ private:
 
 #define UNDERLYING_ACCESSOR_DEF(ztype, ctype, name) \
 	inline ctype Val::name() const \
-		{ return dynamic_cast<const ztype*>(this)->Get(); }
+		{ /*printf("name\n");*/ return dynamic_cast<const ztype*>(this)->Get(); }
 
-UNDERLYING_ACCESSOR_DEF(detail::IntValImplementation, bro_int_t, AsInt)
-UNDERLYING_ACCESSOR_DEF(BoolVal, bool, AsBool)
-UNDERLYING_ACCESSOR_DEF(EnumVal, int, AsEnum)
-UNDERLYING_ACCESSOR_DEF(detail::UnsignedValImplementation, bro_uint_t, AsCount)
-UNDERLYING_ACCESSOR_DEF(detail::DoubleValImplementation, double, AsDouble)
-UNDERLYING_ACCESSOR_DEF(TimeVal, double, AsTime)
-UNDERLYING_ACCESSOR_DEF(IntervalVal, double, AsInterval)
+// UNDERLYING_ACCESSOR_DEF(IntVal, bro_int_t, AsInt)
+// UNDERLYING_ACCESSOR_DEF(BoolVal, bool, AsBool)
+// UNDERLYING_ACCESSOR_DEF(EnumVal, int, AsEnum)
+// UNDERLYING_ACCESSOR_DEF(CountVal, bro_uint_t, AsCount)
+// UNDERLYING_ACCESSOR_DEF(DoubleVal, double, AsDouble)
+// UNDERLYING_ACCESSOR_DEF(TimeVal, double, AsTime)
+// UNDERLYING_ACCESSOR_DEF(IntervalVal, double, AsInterval)
 UNDERLYING_ACCESSOR_DEF(SubNetVal, const IPPrefix&, AsSubNet)
 UNDERLYING_ACCESSOR_DEF(AddrVal, const IPAddr&, AsAddr)
 UNDERLYING_ACCESSOR_DEF(StringVal, const String*, AsString)
@@ -1522,7 +1540,6 @@ UNDERLYING_ACCESSOR_DEF(FileVal, File*, AsFile)
 UNDERLYING_ACCESSOR_DEF(PatternVal, const RE_Matcher*, AsPattern)
 UNDERLYING_ACCESSOR_DEF(TableVal, const PDict<TableEntryVal>*, AsTable)
 UNDERLYING_ACCESSOR_DEF(TypeVal, zeek::Type*, AsType)
-
 
 // Checks the given value for consistency with the given type.  If an
 // exact match, returns it.  If promotable, returns the promoted version.

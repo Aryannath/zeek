@@ -130,9 +130,9 @@ ValPtr Val::DoClone(CloneState* state)
 bool Val::IsZero() const
 	{
 	switch ( type->InternalType() ) {
-	case TYPE_INTERNAL_INT:		return AsInt() == 0;
-	case TYPE_INTERNAL_UNSIGNED:	return AsCount() == 0;
-	case TYPE_INTERNAL_DOUBLE:	return AsDouble() == 0.0;
+	case TYPE_INTERNAL_INT:		return int_val == 0;
+	case TYPE_INTERNAL_UNSIGNED:	return uint_val == 0;
+	case TYPE_INTERNAL_DOUBLE:	return double_val == 0;
 
 	default:			return false;
 	}
@@ -141,9 +141,9 @@ bool Val::IsZero() const
 bool Val::IsOne() const
 	{
 	switch ( type->InternalType() ) {
-	case TYPE_INTERNAL_INT:		return AsInt() == 1;
-	case TYPE_INTERNAL_UNSIGNED:	return AsCount() == 1;
-	case TYPE_INTERNAL_DOUBLE:	return AsDouble() == 1.0;
+	case TYPE_INTERNAL_INT:		return int_val == 1;
+	case TYPE_INTERNAL_UNSIGNED:	return uint_val == 1;
+	case TYPE_INTERNAL_DOUBLE:	return double_val == 1.0;
 
 	default:			return false;
 	}
@@ -152,10 +152,10 @@ bool Val::IsOne() const
 bro_int_t Val::InternalInt() const
 	{
 	if ( type->InternalType() == TYPE_INTERNAL_INT )
-		return AsInt();
+		return int_val;
 	else if ( type->InternalType() == TYPE_INTERNAL_UNSIGNED )
 		// ### should check here for overflow
-		return static_cast<bro_int_t>(AsCount());
+		return static_cast<bro_int_t>(uint_val);
 	else
 		InternalWarning("bad request for InternalInt");
 
@@ -729,9 +729,9 @@ uint32_t PortVal::Mask(uint32_t port_num, TransportProto port_type)
 	return port_num;
 	}
 
-PortVal::PortVal(uint32_t p)
-	: Val(base_type(TYPE_PORT)), UnsignedValImplementation(bro_uint_t(p))
+PortVal::PortVal(uint32_t p) : Val(base_type(TYPE_PORT))
 	{
+	Val::uint_val = p;
 	}
 
 uint32_t PortVal::Port() const
