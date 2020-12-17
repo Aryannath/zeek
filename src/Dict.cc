@@ -477,6 +477,8 @@ TEST_CASE("dict iterator invalidation")
 
 	detail::HashKey* it_key;
 	bool iterators_invalidated = false;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	IterCookie* it = dict.InitForIteration();
 	CHECK(it != nullptr);
 
@@ -516,6 +518,7 @@ TEST_CASE("dict iterator invalidation")
 		dict.StopIteration(it);
 		break;
 		}
+#pragma GCC diagnostic pop
 
 	CHECK(dict.Length() == 2);
 	CHECK(*static_cast<uint32_t*>(dict.Lookup(key)) == val2);
