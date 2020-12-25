@@ -8,7 +8,7 @@
 #include <math.h>
 #include <limits.h>
 
-// other interesting references on num to string convesion
+// other interesting references on num to string convesions
 // http://www.jb.man.ac.uk/~slowe/cpp/itoa.html
 // and http://www.ddj.com/dept/cpp/184401596?pgno=6
 
